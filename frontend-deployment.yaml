@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: ai-demo
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      imagePullSecrets:
+            - name: ghcr-secret
+      containers:
+        - args:
+            - streamlit
+            - run
+            - HOME.py
+          env:
+            - name: STABLE_V1_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: demo-config         # The ConfigMap this value comes from.
+                  key: STABLE_V1_IP
+            - name: STABLE_V2_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: demo-config         # The ConfigMap this value comes from.
+                  key: STABLE_V2_IP
+            - name: ControlNet_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: demo-config         # The ConfigMap this value comes from.
+                  key: ControlNet_IP
+            - name: MINIO_SERVER_IP
+              valueFrom:
+                configMapKeyRef:
+                  name: demo-config         # The ConfigMap this value comes from.
+                  key: MINIO_SERVER_IP
+            - name: access_key
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ACCESS_KEY
+            - name: secret_key
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_SECRET_KEY
+          name: frontend
+          image: ghcr.io/amnescher/frontend:latest
+          
+          ports:
+            - containerPort: 8501
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+              scheme: HTTP
+            timeoutSeconds: 1
+          resources: {}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: ai-demo
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - name: streamlit-port
+      protocol: TCP
+      port: 80
+      targetPort: 8501

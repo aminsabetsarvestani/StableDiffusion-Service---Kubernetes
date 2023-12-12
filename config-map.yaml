@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+  namespace: ai-demo
+data:
+  MINIO_SERVER_IP: minio
+  STABLE_V1_IP: stablev1-service
+  STABLE_V2_IP: stablev2-service
+  ControlNet_IP: controlnet-service
